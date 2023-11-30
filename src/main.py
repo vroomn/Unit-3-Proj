@@ -154,13 +154,14 @@ class PipeStack():
         self.topEntry.wireframeDraw()
         self.topTube.wireframeDraw()
 
-pipeSpacing = 120
+#FIXME: Spacing of the pipe and setup need overhaul for consistent output
+pipeSpacing = 200
 
 numOfPipes = round(screen.get_width()/(pipeSpacing+100))
 pipes = []
 
 for i in range(numOfPipes):
-    pipes.append(PipeStack((pipeSpacing+100)*(i+1)))
+    pipes.append(PipeStack((pipeSpacing+100)*i))
 
 run = True
 while run:
