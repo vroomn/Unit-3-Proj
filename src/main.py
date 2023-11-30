@@ -27,23 +27,25 @@ class GameObject:
 class PipeStack():
     def __init__(self) -> None:
         widthHalf = screen.get_width()/2
-        self.initY = screen.get_height()/2
+        self.originY = screen.get_height()/2
+        self.spacing = 200
 
-        self.topEntry = GameObject(100, 50, widthHalf, self.initY-150)
-        self.topTube = GameObject(88, self.initY-150, widthHalf+6, 0)
+        self.topEntry = GameObject(100, 50, widthHalf, self.originY-150)
+        self.topTube = GameObject(88, self.originY-150, widthHalf+6, 0)
 
-        self.bottomEntry = GameObject(100, 50, widthHalf, self.initY+100)
-        self.bottomTube = GameObject(88, screen.get_height()-(self.initY+100), widthHalf+6, self.initY+150)
+        self.bottomEntry = GameObject(100, 50, widthHalf, self.originY+100)
+        self.bottomTube = GameObject(88, screen.get_height()-(self.originY+100), widthHalf+6, self.originY+150)
     
     def changePipeSpacing(self, dist) -> None:
+        self.spacing = dist
         dist = dist/2
         topRect = self.topEntry.rect
-        topRect.update(topRect.x, (self.initY-50)-dist, topRect.width, topRect.height)
-        self.topTube.update(self.topTube.rect.width, (self.initY-50)-dist, self.topTube.rect.x, self.topTube.rect.y)
+        topRect.update(topRect.x, (self.originY-50)-dist, topRect.width, topRect.height)
+        self.topTube.update(self.topTube.rect.width, (self.originY-50)-dist, self.topTube.rect.x, self.topTube.rect.y)
 
         botRect = self.bottomEntry.rect
-        botRect.update(botRect.x, self.initY+dist, botRect.width, botRect.height)
-        self.bottomTube.update(self.bottomTube.rect.width, screen.get_height()-(self.initY+dist), self.bottomTube.rect.x, self.initY+dist+50)
+        botRect.update(botRect.x, self.originY+dist, botRect.width, botRect.height)
+        self.bottomTube.update(self.bottomTube.rect.width, screen.get_height()-(self.originY+dist), self.bottomTube.rect.x, self.originY+dist+50)
     
     def wireframeDraw(self) -> None:
         self.bottomEntry.wireframeDraw()
@@ -58,12 +60,17 @@ pipeOne = PipeStack()
 def spacingCallback(sender, app_data):
     pipeOne.changePipeSpacing(app_data)
 
+def yOffsetCallback(sender, app_data):
+    pipeOne.originY = app_data
+    pipeOne.changePipeSpacing(pipeOne.spacing)
+
 def dpgManagement():
     dpg.create_context()
     dpg.create_viewport(title="Config Menu", width=600, height=300)
 
     with dpg.window(label="Pipe Configuration"):
         dpg.add_slider_int(label="Pipe Spacing", default_value=200, min_value=0, max_value=300, callback=spacingCallback)
+        dpg.add_slider_int(label="Pipe Y Pos", default_value=screen.get_height()/2, min_value=150, max_value=screen.get_height()-150, callback=yOffsetCallback)
 
     dpg.setup_dearpygui()
     dpg.show_viewport()
