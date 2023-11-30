@@ -78,7 +78,7 @@ class GameObject:
         self.surface = pygame.Surface((width, height), pygame.SRCALPHA).convert_alpha() #Enables transparency
 
     def wireframeDraw(self) -> None:
-        pygame.gfxdraw.rectangle(screen, self.rect, (255, 255, 255)) # Draws white rectangle for wireframe
+        pygame.gfxdraw.rectangle(screen, self.rect, (207, 93, 85)) # Draws white rectangle for wireframe
 
     def update(self, width, height, xPos, yPos) -> None:
         self.surface = pygame.transform.scale(self.surface, (width, height))
@@ -139,7 +139,6 @@ class PipeStack():
         dpg.set_value(pipeControls["Pipe Spacing"], self.spacing)
         dpg.set_value(pipeControls["Pipe Y Pos"], self.originY)
 
-
     def wireframeDraw(self) -> None:
         self.bottomEntry.wireframeDraw()
         self.bottomTube.wireframeDraw()
@@ -159,6 +158,8 @@ while run:
 
     pipeOne.wireframeDraw()
     pipeOne.scroll()
+    if pipeOne.bottomEntry.rect.x+pipeOne.bottomEntry.rect.width <= 0:
+        pipeOne.reset()
 
     pygame.display.flip()
     deltaTime = clock.tick(60)/1000
