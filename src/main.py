@@ -10,7 +10,7 @@ import threading
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
 clock = pygame.time.Clock()
-deltaTime = 0
+deltaTime = 0.0
 
 class GameObject:
     def __init__(self, width, height, xPos, yPos) -> None:
@@ -24,17 +24,21 @@ class GameObject:
         self.surface = pygame.transform.scale(self.surface, (width, height))
         self.rect.update(xPos, yPos, width, height)
 
+    def move(self, x, y):
+        self.rect = self.rect.move(x, y)
+
 class PipeStack():
     def __init__(self) -> None:
-        widthHalf = screen.get_width()/2
+        initX = screen.get_width()
         self.originY = screen.get_height()/2
         self.spacing = 200
+        self.scrollRate = 102
 
-        self.topEntry = GameObject(100, 50, widthHalf, self.originY-150)
-        self.topTube = GameObject(88, self.originY-150, widthHalf+6, 0)
+        self.topEntry = GameObject(100, 50, initX, self.originY-150)
+        self.topTube = GameObject(88, self.originY-150, initX+6, 0)
 
-        self.bottomEntry = GameObject(100, 50, widthHalf, self.originY+100)
-        self.bottomTube = GameObject(88, screen.get_height()-(self.originY+100), widthHalf+6, self.originY+150)
+        self.bottomEntry = GameObject(100, 50, initX, self.originY+100)
+        self.bottomTube = GameObject(88, screen.get_height()-(self.originY+100), initX+6, self.originY+150)
     
     def changePipeSpacing(self, dist) -> None:
         self.spacing = dist
@@ -47,6 +51,14 @@ class PipeStack():
         botRect.update(botRect.x, self.originY+dist, botRect.width, botRect.height)
         self.bottomTube.update(self.bottomTube.rect.width, screen.get_height()-(self.originY+dist), self.bottomTube.rect.x, self.originY+dist+50)
     
+    def scroll(self):
+        scrollRate = -self.scrollRate*deltaTime
+        self.topEntry.move(scrollRate, 0)
+        self.topTube.move(scrollRate, 0)
+
+        self.bottomEntry.move(scrollRate, 0)
+        self.bottomTube.move(scrollRate, 0)
+
     def wireframeDraw(self) -> None:
         self.bottomEntry.wireframeDraw()
         self.bottomTube.wireframeDraw()
@@ -64,6 +76,9 @@ def yOffsetCallback(sender, app_data):
     pipeOne.originY = app_data
     pipeOne.changePipeSpacing(pipeOne.spacing)
 
+def scrollSpeedCallback(sender, app_data):
+    pipeOne.scrollRate = app_data
+
 def dpgManagement():
     dpg.create_context()
     dpg.create_viewport(title="Config Menu", width=600, height=300)
@@ -71,6 +86,7 @@ def dpgManagement():
     with dpg.window(label="Pipe Configuration"):
         dpg.add_slider_int(label="Pipe Spacing", default_value=200, min_value=0, max_value=300, callback=spacingCallback)
         dpg.add_slider_int(label="Pipe Y Pos", default_value=screen.get_height()/2, min_value=150, max_value=screen.get_height()-150, callback=yOffsetCallback)
+        dpg.add_slider_int(label="Pipe Scroll Speed", default_value=102, min_value=60, max_value=500, callback=scrollSpeedCallback)
 
     dpg.setup_dearpygui()
     dpg.show_viewport()
@@ -90,9 +106,10 @@ while run:
                 run = False
 
     pipeOne.wireframeDraw()
+    pipeOne.scroll()
 
     pygame.display.flip()
-    deltaTime = clock.tick()
+    deltaTime = clock.tick(60)/1000
 
 dpgThread.join()
 pygame.quit()
