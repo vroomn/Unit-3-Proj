@@ -4,6 +4,7 @@ import random
 
 import dearpygui.dearpygui as dpg
 
+import queue
 import threading
 
 
@@ -11,6 +12,65 @@ pygame.init()
 screen = pygame.display.set_mode((1280, 720))
 clock = pygame.time.Clock()
 deltaTime = 0.0
+
+# __________________________________ Allows for a window to dynamically config the properties
+#TODO: Combine callbacks with the pipe control dict
+def spacingCallback(sender, app_data):
+    pipeOne.changePipeSpacing(app_data)
+
+def yOffsetCallback(sender, app_data):
+    pipeOne.originY = app_data
+    pipeOne.changePipeSpacing(pipeOne.spacing)
+
+def scrollSpeedCallback(sender, app_data):
+    pipeOne.scrollRate = app_data
+
+def pipeReset(sender, app_data):
+    pipeOne.reset()
+
+def yMinCallback(sender, app_data):
+    pipeOne.yAxisMin = app_data
+
+def yMaxcallback(sender, app_data):
+    pipeOne.yAxisMax = app_data
+
+def spacingMinCallback(sender, app_data):
+    pipeOne.pipeSpacingMin = app_data
+
+def spacingMaxCallback(sender, app_data):
+    pipeOne.pipeSpacingMax = app_data
+
+pipeControlIds = queue.Queue(3)
+
+def dpgManagement():
+    dpg.create_context()
+    dpg.create_viewport(title="Config Menu", width=600, height=300)
+
+    with dpg.window(label="Pipe Configuration"):
+        dpg.add_text("Active Pipe Config")
+        pipeControlIds.put(dpg.add_slider_int(label="Pipe Spacing", default_value=200, min_value=0, max_value=300, callback=spacingCallback))
+        pipeControlIds.put(dpg.add_slider_int(label="Pipe Y Pos", default_value=screen.get_height()/2, min_value=150, max_value=screen.get_height()-150, callback=yOffsetCallback))
+        pipeControlIds.put(dpg.add_slider_int(label="Pipe Scroll Speed", default_value=102, min_value=60, max_value=500, callback=scrollSpeedCallback))
+        dpg.add_button(label="Reset Tube Pos", callback=pipeReset)
+        dpg.add_text("Reset Parameters")
+        dpg.add_input_int(label="Y Axis Minimum", default_value=150, callback=yMinCallback)
+        dpg.add_input_int(label="Y Axis Minimum", default_value=screen.get_height()-150, callback=yMaxcallback)
+        dpg.add_input_int(label="Spacing Minimum", default_value=200, callback=spacingMinCallback)
+        dpg.add_input_int(label="Spacing Maximum", default_value=300, callback=spacingMaxCallback)
+
+    dpg.setup_dearpygui()
+    dpg.show_viewport()
+    dpg.start_dearpygui()
+    dpg.destroy_context()
+
+dpgThread = threading.Thread(target=dpgManagement, args=())
+dpgThread.start()
+
+pipeControls = {"Pipe Spacing": pipeControlIds.get(),
+                "Pipe Y Pos": pipeControlIds.get(),
+                "Pipe Scroll Speed": pipeControlIds.get()}
+
+# __________________________________
 
 class GameObject:
     def __init__(self, width, height, xPos, yPos) -> None:
@@ -30,9 +90,13 @@ class GameObject:
 class PipeStack():
     def __init__(self) -> None:
         initX = screen.get_width()
-        self.originY = screen.get_height()/2
         self.spacing = 200
         self.scrollRate = 102
+        self.yAxisMin = 150
+        self.yAxisMax = screen.get_height()-150
+        self.pipeSpacingMin = 200
+        self.pipeSpacingMax = 300
+        self.originY = random.randrange(self.yAxisMin, self.yAxisMax)
 
         self.topEntry = GameObject(100, 50, initX, self.originY-150)
         self.topTube = GameObject(88, self.originY-150, initX+6, 0)
@@ -59,6 +123,23 @@ class PipeStack():
         self.bottomEntry.move(scrollRate, 0)
         self.bottomTube.move(scrollRate, 0)
 
+    def reset(self):
+        #TODO: Compress into function that can perfom the same task, add all to array
+        resetPos = screen.get_width()
+        self.topEntry.move(resetPos-self.topEntry.rect.x, 0)
+        self.topTube.move((resetPos-self.topTube.rect.x)+6, 0)
+        self.bottomEntry.move(resetPos-self.bottomEntry.rect.x, 0)
+        self.bottomTube.move((resetPos-self.bottomTube.rect.x)+6, 0)
+
+        # Adjust the spacing and the Y axis alignment
+        self.originY = random.randrange(self.yAxisMin, self.yAxisMax)
+        self.changePipeSpacing(random.randrange(self.pipeSpacingMin, self.pipeSpacingMax))
+
+        # Pipe new values into the dev panel
+        dpg.set_value(pipeControls["Pipe Spacing"], self.spacing)
+        dpg.set_value(pipeControls["Pipe Y Pos"], self.originY)
+
+
     def wireframeDraw(self) -> None:
         self.bottomEntry.wireframeDraw()
         self.bottomTube.wireframeDraw()
@@ -67,35 +148,6 @@ class PipeStack():
         self.topTube.wireframeDraw()
 
 pipeOne = PipeStack()
-
-# __________________________________ Allows for a window to dynamically config the properties
-def spacingCallback(sender, app_data):
-    pipeOne.changePipeSpacing(app_data)
-
-def yOffsetCallback(sender, app_data):
-    pipeOne.originY = app_data
-    pipeOne.changePipeSpacing(pipeOne.spacing)
-
-def scrollSpeedCallback(sender, app_data):
-    pipeOne.scrollRate = app_data
-
-def dpgManagement():
-    dpg.create_context()
-    dpg.create_viewport(title="Config Menu", width=600, height=300)
-
-    with dpg.window(label="Pipe Configuration"):
-        dpg.add_slider_int(label="Pipe Spacing", default_value=200, min_value=0, max_value=300, callback=spacingCallback)
-        dpg.add_slider_int(label="Pipe Y Pos", default_value=screen.get_height()/2, min_value=150, max_value=screen.get_height()-150, callback=yOffsetCallback)
-        dpg.add_slider_int(label="Pipe Scroll Speed", default_value=102, min_value=60, max_value=500, callback=scrollSpeedCallback)
-
-    dpg.setup_dearpygui()
-    dpg.show_viewport()
-    dpg.start_dearpygui()
-    dpg.destroy_context()
-
-dpgThread = threading.Thread(target=dpgManagement, args=())
-dpgThread.start()
-# __________________________________
 
 run = True
 while run:
