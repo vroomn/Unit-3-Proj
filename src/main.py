@@ -59,7 +59,7 @@ def setJumpStrengthCallback(sender, app_data):
 
 pipeControlIds = queue.Queue(3)
 
-# Function to hold the logic that will be on a seperate thread
+# Function to hold the logic that will be on a seperate thread (Debugging tooling)
 def dpgManagement():
     dpg.create_context()
     dpg.create_viewport(title="Config Menu", width=600, height=300)
@@ -96,6 +96,7 @@ pipeControls = {#"Pipe Spacing": pipeControlIds.get(),
 
 # __________________________________
 
+# Generic object for everything in the game
 class GameObject:
     def __init__(self, width, height, xPos, yPos) -> None:
         self.rect = pygame.Rect(xPos, yPos, width, height)
@@ -184,34 +185,26 @@ class PipeStack():
         self.topEntry.wireframeDraw((207, 93, 85))
         self.topTube.wireframeDraw((207, 93, 85))
 
-def gameOver():
-    run = False
-
-#FIXME: Spacing of the pipe and setup need overhaul for consistent output
-pipeSpacing = 200
-
-numOfPipes = round(screen.get_width()/(pipeSpacing+100))
-pipes = []
-
-for i in range(numOfPipes):
-    pipes.append(PipeStack((pipeSpacing+100)*i, i))
-
+# Struct for the player
 class Flappy(GameObject):
     def __init__(self, width, height, xPos, yPos) -> None:
         super().__init__(width, height, xPos, yPos)
         self.yVelocity:float = 0
-        self.gravityWeight:float = 5
-        self.velocityMax:float = 10
+        self.gravityWeight:float = 6.356
+        self.velocityMax:float = 15.254
 
+    # Apply gravity to the velocity, and make sure it doesn't exceed certian speed
     def physicsUpdate(self):
         self.yVelocity += (self.gravityWeight*deltaTime)
         if self.yVelocity > self.velocityMax:
             self.yVelocity = self.velocityMax
         self.move(0, self.yVelocity)
     
+    # Draw the rect as a wireframe
     def wireframeDraw(self) -> None:
         return super().wireframeDraw((255, 255, 255))
     
+    # Runs through all the rects in the scene and makes sure they dont collide with the player
     def collisionCheck(self):
         if self.rect.y <= 0 or self.rect.y >= 720:
             global run
@@ -219,6 +212,7 @@ class Flappy(GameObject):
 
         for pipe in pipes:
             for rect in pipe.rects:
+                # Algorithm to detect rectangle collision (Gathered from this: https://happycoding.io/tutorials/processing/collision-detection post and other sources)
                 if (
                     self.rect.x + self.rect.width > rect.x and
                     self.rect.x < rect.x + rect.width and 
@@ -227,10 +221,20 @@ class Flappy(GameObject):
                 ):
                     run = False
 
+#FIXME: Spacing of the pipe and setup need overhaul for consistent output
+pipeSpacing = 200
 
+# Calculate how many pipes would be needed to create somewhat smooth infinite scroll
+numOfPipes = round(screen.get_width()/(pipeSpacing+100))
+pipes = []
+for i in range(numOfPipes):
+    pipes.append(PipeStack((pipeSpacing+100)*i, i))
+
+# Create an object that contains all needed variables and functions for the player (Analogous to a sprite)
 flappy = Flappy(60, 40, 100, screen.get_height()/2)
-jumpStrength = 10
+jumpStrength = 8.475
 
+# Game loop that both renders and checks for collision
 run = True
 while run:
     screen.fill((0, 0, 0))
@@ -254,8 +258,10 @@ while run:
     flappy.physicsUpdate()
     flappy.collisionCheck()
 
+    # Flip the video buffer
     pygame.display.flip()
-    deltaTime = clock.tick(60)/1000
+    deltaTime = clock.tick(60)/1000 # Locks the FPS to 60, and gets the Deltatime between the frames in ms
 
+# End the program and second thread
 dpgThread.join()
 pygame.quit()
